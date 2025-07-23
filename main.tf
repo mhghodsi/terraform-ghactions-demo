@@ -9,7 +9,7 @@ resource "aws_s3_bucket" "mybucket" {
 }
 
 # Set the access control list (ACL) for the S3 bucket to private
-resource "aws_s3_bucket_acl" "mybucket_acl" {
-  bucket = aws_s3_bucket.mybucket.id
-  acl    = "private"
-}
+# resource "aws_s3_bucket_acl" "mybucket_acl" {
+#   bucket = aws_s3_bucket.mybucket.id
+#   acl    = "private"
+# }
