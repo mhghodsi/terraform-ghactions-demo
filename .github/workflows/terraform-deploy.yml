@@ -1,0 +1,57 @@
+name: Deploy S3 Bucket from Issue Form
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  check-issue:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'terraform') && contains(github.event.issue.labels.*.name, 'deployment')
+    steps:
+      - name: Extract form data
+        id: form_data
+        run: |
+          BODY="${{ github.event.issue.body }}"
+          BUCKET_NAME=$(echo "$BODY" | grep -A2 "### Bucket Name" | tail -n1 | xargs)
+          echo "bucket_name=$BUCKET_NAME" >> $GITHUB_OUTPUT
+          echo "Issue contains bucket name: $BUCKET_NAME"
+      
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Terraform Init
+        run: terraform init
+      
+      - name: Terraform Plan
+        run: terraform plan -var="bucket_name=${{ steps.form_data.outputs.bucket_name }}"
+      
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -var="bucket_name=${{ steps.form_data.outputs.bucket_name }}"
+      
+      - name: Comment on issue with results
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `✅ S3 bucket \`${{ steps.form_data.outputs.bucket_name }}\` has been successfully created!`
+            })
+            github.rest.issues.update({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed'
+            })

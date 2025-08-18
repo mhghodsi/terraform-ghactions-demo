@@ -1,0 +1,1 @@
+# Add CloudFront-specific variables here

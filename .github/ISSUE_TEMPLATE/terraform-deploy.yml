@@ -1,0 +1,19 @@
+name: Deploy S3 Bucket
+description: Form to deploy a new S3 bucket
+title: "Deploy: "
+labels: ["terraform", "deployment"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## S3 Bucket Deployment Request
+        Fill out this form to request a new S3 bucket deployment.
+  
+  - type: input
+    id: bucket_name
+    attributes:
+      label: Bucket Name
+      description: Name for the S3 bucket (must be globally unique)
+      placeholder: my-unique-bucket-name
+    validations:
+      required: true
