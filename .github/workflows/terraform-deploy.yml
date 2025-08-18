@@ -5,8 +5,18 @@ on:
     types: [opened]
 
 jobs:
+  debug-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Debug Issue
+        run: |
+          echo "Issue title: ${{ github.event.issue.title }}"
+          echo "Issue body: ${{ github.event.issue.body }}"
+          echo "Issue labels: ${{ toJSON(github.event.issue.labels) }}"
+      
   check-issue:
     runs-on: ubuntu-latest
+    needs: debug-issue
     if: contains(github.event.issue.labels.*.name, 'terraform') && contains(github.event.issue.labels.*.name, 'deployment')
     steps:
       - name: Extract form data
