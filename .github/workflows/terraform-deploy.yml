@@ -17,16 +17,21 @@ jobs:
   check-issue:
     runs-on: ubuntu-latest
     needs: debug-issue
-    if: contains(github.event.issue.labels.*.name, 'terraform') && contains(github.event.issue.labels.*.name, 'deployment')
+    # Remove the label condition or make it simpler
+    # if: contains(github.event.issue.labels.*.name, 'terraform') && contains(github.event.issue.labels.*.name, 'deployment')
+    if: startsWith(github.event.issue.title, 'Deploy:')
     steps:
+# In your workflow file
       - name: Extract form data
         id: form_data
         run: |
           BODY="${{ github.event.issue.body }}"
-          BUCKET_NAME=$(echo "$BODY" | grep -A2 "### Bucket Name" | tail -n1 | xargs)
+          echo "ISSUE BODY:"
+          echo "$BODY"
+          BUCKET_NAME=$(echo "$BODY" | grep -A1 "Bucket Name" | tail -n1 | xargs)
           echo "bucket_name=$BUCKET_NAME" >> $GITHUB_OUTPUT
           echo "Issue contains bucket name: $BUCKET_NAME"
-      
+          
       - name: Checkout code
         uses: actions/checkout@v3
       
