@@ -20,3 +20,8 @@ resource "aws_s3_bucket" "mybucket" {
 #   bucket = aws_s3_bucket.mybucket.id
 #   acl    = "private"
 # }
+
+resource "aws_cloudfront_distribution" "my_distribution1" {}
+
+resource "aws_cloudfront_distribution" "my_distribution2" {}
+

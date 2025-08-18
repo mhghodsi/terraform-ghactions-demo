@@ -17,3 +17,8 @@ crash.log
 
 # Sensitive environment files
 .env*
+
+
+# exclude any .tfstate files
+*.tfstate
+*.tfstate.*
