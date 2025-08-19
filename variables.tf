@@ -4,13 +4,22 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "buckets" {
-  description = "Map of bucket names to their configuration"
-  type        = map(object({
-    create = bool
-    acl    = optional(string, "private")
-  }))
-  default     = {}
+variable "bucket_name" {
+  description = "Name of the S3 bucket to create (without environment prefix)"
+  type        = string
+  default     = ""
+}
+
+variable "create_bucket" {
+  description = "Whether to create the bucket"
+  type        = bool
+  default     = true
+}
+
+variable "bucket_acl" {
+  description = "ACL for the S3 bucket"
+  type        = string
+  default     = "private"
 }
 
 variable "github_token" {

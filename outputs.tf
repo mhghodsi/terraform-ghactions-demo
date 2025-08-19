@@ -1,6 +1,6 @@
-output "bucket_names" {
-  description = "Names of all created S3 buckets"
-  value       = {for name, bucket in module.buckets : name => bucket.bucket_name}
+output "bucket_name" {
+  description = "Name of the created S3 bucket"
+  value       = var.create_bucket && var.bucket_name != "" ? module.s3_bucket[0].bucket_name : "No bucket created"
 }
 
 output "github_repo_url" {

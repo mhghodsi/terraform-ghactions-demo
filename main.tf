@@ -5,14 +5,14 @@ resource "random_string" "suffix" {
   special = false
 }
 
-# Create S3 buckets based on the input configuration
-module "buckets" {
+# Create a single S3 bucket if create_bucket is true and bucket_name is provided
+module "s3_bucket" {
   source     = "./modules/s3"
-  for_each   = {for name, config in var.buckets : name => config if config.create}
+  count      = var.create_bucket && var.bucket_name != "" ? 1 : 0
   
-  # Apply workspace prefix to each bucket name
-  bucket_name = local.format_bucket_name(each.key)
-  acl         = each.value.acl
+  # Apply workspace prefix to the bucket name
+  bucket_name = local.format_bucket_name(var.bucket_name)
+  acl         = var.bucket_acl
 }
 
 # Create a GitHub repository

@@ -14,18 +14,14 @@ on:
       action:
         description: 'Action to perform'
         required: true
-        default: 'create-buckets'
+        default: 'create'
         type: choice
         options:
-          - create-buckets
-          - delete-buckets
-      bucket_config:
-        description: 'JSON configuration for buckets (e.g., {"bucket1": {"create": true}, "bucket2": {"create": true}})'
+          - create
+          - delete
+      bucket_name:
+        description: 'Name of the bucket to create or delete (without env prefix)'
         required: true
-        type: string
-      delete_bucket:
-        description: 'Specific bucket name to delete (without env prefix, only needed for delete action)'
-        required: false
         type: string
 
 jobs:
@@ -65,11 +61,15 @@ jobs:
           terraform workspace select ${{ github.event.inputs.environment }} || terraform workspace new ${{ github.event.inputs.environment }}
           echo "Using workspace: $(terraform workspace show)"
       
-      - name: Create buckets
-        if: github.event.inputs.action == 'create-buckets'
+      - name: Create bucket
+        if: github.event.inputs.action == 'create'
         run: |
-          # Create tfvars file from JSON input
-          echo "buckets = ${{ github.event.inputs.bucket_config }}" > terraform.tfvars
+          # Create tfvars file with the bucket configuration
+          cat << EOF > terraform.tfvars
+          bucket_name = "${{ github.event.inputs.bucket_name }}"
+          create_bucket = true
+          bucket_acl = "private"
+          EOF
           
           # Show the plan
           terraform plan
@@ -77,16 +77,17 @@ jobs:
           # Apply the changes
           terraform apply -auto-approve
       
-      - name: Delete specific bucket
-        if: github.event.inputs.action == 'delete-buckets' && github.event.inputs.delete_bucket != ''
+      - name: Delete bucket
+        if: github.event.inputs.action == 'delete'
         run: |
-          # Create temporary tfvars with the current bucket configuration
-          echo "buckets = ${{ github.event.inputs.bucket_config }}" > terraform.tfvars
+          # Create a temporary tfvars file
+          cat << EOF > terraform.tfvars
+          bucket_name = "${{ github.event.inputs.bucket_name }}"
+          EOF
           
-          # Show bucket to be deleted (without prefix - this is what Terraform expects)
-          echo "Deleting bucket: ${{ github.event.inputs.delete_bucket }}"
+          # Show bucket to be deleted
+          echo "Deleting bucket: ${{ github.event.inputs.bucket_name }} (with workspace prefix)"
           echo "In workspace: $(terraform workspace show)"
           
-          # Target destroy the specific bucket using its key in the map (without prefix)
-          # The workspace prefix is automatically added by the module via locals
-          terraform destroy -target="module.buckets[\"${{ github.event.inputs.delete_bucket }}\"]" -auto-approve
+          # Destroy the specific bucket
+          terraform destroy -target="module.s3_bucket[0]" -auto-approve
