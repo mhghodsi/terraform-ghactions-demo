@@ -1,0 +1,26 @@
+name: CI (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: "Target environment"
+        type: choice
+        options: [dev, staging, prod]
+        required: true
+      run_tests:
+        description: "Run tests?"
+        type: boolean
+        default: true
+      model_version:
+        description: "Model tag"
+        required: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "env=${{ inputs.env }}"
+          echo "run_tests=${{ inputs.run_tests }}"
+          echo "model_version=${{ inputs.model_version }}"
