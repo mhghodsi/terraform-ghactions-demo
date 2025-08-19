@@ -31,5 +31,5 @@ variable "github_token" {
 variable "github_owner" {
   description = "GitHub owner/organization name"
   type        = string
-  default     = "mhghodsi"  # Your GitHub username based on repo context
+  default     = "mhghodsi" # Your GitHub username based on repo context
 }

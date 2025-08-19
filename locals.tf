@@ -1,15 +1,12 @@
 locals {
-  # Get the current workspace name (dev or prod)
-  env = terraform.workspace
-  
-  # Ensure workspace is either dev or prod
-  valid_workspace = contains(["dev", "prod"], terraform.workspace) ? terraform.workspace : "default"
-  
-  # Create a prefix for all resources based on workspace
-  prefix = "${local.valid_workspace}_"
-  
-  # Create a formatted bucket name with workspace prefix
-  format_bucket_name = function(name) {
-    return "${local.prefix}${name}"
-  }
+  ws              = lower(terraform.workspace)
+  valid_workspace = contains(["dev", "prod"], local.ws) ? local.ws : "default"
+  prefix          = "${local.valid_workspace}-"
+
+  # sanitize bucket base
+  bucket_base_1         = lower(var.bucket_name)
+  bucket_base_2         = replace(local.bucket_base_1, " ", "-")
+  bucket_base_3         = replace(local.bucket_base_2, "_", "-")
+  bucket_base_4         = replace(local.bucket_base_3, "--", "-")
+  formatted_bucket_name = "${local.prefix}${local.bucket_base_4}"
 }

@@ -1,6 +1,6 @@
 resource "aws_s3_bucket" "bucket" {
   bucket        = var.bucket_name
-  force_destroy = true  # Enables deletion of non-empty buckets
+  force_destroy = true # Enables deletion of non-empty buckets
 }
 
 # Uncomment and update if needed

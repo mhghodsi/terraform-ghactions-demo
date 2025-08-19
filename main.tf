@@ -7,18 +7,19 @@ resource "random_string" "suffix" {
 
 # Create a single S3 bucket if create_bucket is true and bucket_name is provided
 module "s3_bucket" {
-  source     = "./modules/s3"
-  count      = var.create_bucket && var.bucket_name != "" ? 1 : 0
-  
-  # Apply workspace prefix to the bucket name
-  bucket_name = local.format_bucket_name(var.bucket_name)
-  acl         = var.bucket_acl
+  source = "./modules/s3"
+  count  = var.create_bucket && var.bucket_name != "" ? 1 : 0
+
+  # Use the local value (no parentheses) and append the random suffix
+  bucket_name = "${local.formatted_bucket_name}-${random_string.suffix.result}"
+
+  acl = var.bucket_acl
 }
 
 # Create a GitHub repository
 module "github_repo" {
   source = "./modules/github"
-  
+
   repo_name    = "terraform-created-repo"
   description  = "This repository was created using Terraform"
   visibility   = "private"

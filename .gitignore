@@ -1,24 +1,23 @@
-# Local .terraform directories
+# Local Terraform directories
 .terraform/
 
-# .tfstate files
+# Terraform state files
+terraform.tfstate
+terraform.tfstate.*
 *.tfstate
 *.tfstate.*
 
-# Crash log files
+# Crash logs
 crash.log
 
-# Terraform plan file
+# Plan files
+*.plan
 *.tfplan
+*.tfplan.json
 
-# Terraform variable files
+# Variable definitions (often contain secrets)
 *.tfvars
 *.tfvars.json
 
-# Sensitive environment files
+# Environment files (secrets)
 .env*
-
-
-# exclude any .tfstate files
-*.tfstate
-*.tfstate.*
