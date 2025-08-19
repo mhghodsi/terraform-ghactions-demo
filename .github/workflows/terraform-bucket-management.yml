@@ -33,6 +33,15 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
+      # Check if workflow is being run from the main branch
+      - name: Check branch
+        run: |
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "This workflow should only be run from the main branch"
+            echo "Current branch: $GITHUB_REF"
+            exit 1
+          fi
+      
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -74,12 +83,10 @@ jobs:
           # Create temporary tfvars with the current bucket configuration
           echo "buckets = ${{ github.event.inputs.bucket_config }}" > terraform.tfvars
           
-          # Get the current workspace for prefix formation
-          WORKSPACE=$(terraform workspace show)
+          # Show bucket to be deleted (without prefix - this is what Terraform expects)
+          echo "Deleting bucket: ${{ github.event.inputs.delete_bucket }}"
+          echo "In workspace: $(terraform workspace show)"
           
-          # Format the bucket name with workspace prefix
-          PREFIX="${WORKSPACE}_"
-          BUCKET_WITH_PREFIX="${PREFIX}${{ github.event.inputs.delete_bucket }}"
-          
-          # Target destroy the specific bucket
+          # Target destroy the specific bucket using its key in the map (without prefix)
+          # The workspace prefix is automatically added by the module via locals
           terraform destroy -target="module.buckets[\"${{ github.event.inputs.delete_bucket }}\"]" -auto-approve
