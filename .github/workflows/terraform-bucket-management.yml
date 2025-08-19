@@ -8,17 +8,13 @@ on:
         required: true
         default: 'dev'
         type: choice
-        options:
-          - dev
-          - prod
+        options: [dev, prod]
       action:
         description: 'Action to perform'
         required: true
         default: 'create'
         type: choice
-        options:
-          - create
-          - delete
+        options: [create, delete]
       bucket_name:
         description: 'Name of the bucket to create or delete (without env prefix)'
         required: true
@@ -27,67 +23,74 @@ on:
 jobs:
   terraform:
     runs-on: ubuntu-latest
-    
+
     steps:
-      # Check if workflow is being run from the main branch
+      # Enforce main branch only
       - name: Check branch
+        if: ${{ github.ref != 'refs/heads/main' }}
         run: |
-          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
-            echo "This workflow should only be run from the main branch"
-            echo "Current branch: $GITHUB_REF"
-            exit 1
-          fi
-      
+          echo "This workflow should only be run from the main branch"
+          echo "Current ref: $GITHUB_REF"
+          exit 1
+
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: 1.4.0
-      
+          terraform_version: 1.12.2
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-      
+
       - name: Initialize Terraform
-        run: terraform init
-      
-      - name: Select Workspace
+        run: terraform init -input=false
+
+      - name: Select/Create Workspace
         run: |
-          terraform workspace select ${{ github.event.inputs.environment }} || terraform workspace new ${{ github.event.inputs.environment }}
+          ENV_LOWER=$(echo "${{ github.event.inputs.environment }}" | tr '[:upper:]' '[:lower:]')
+          terraform workspace select "$ENV_LOWER" || terraform workspace new "$ENV_LOWER"
           echo "Using workspace: $(terraform workspace show)"
-      
-      - name: Create bucket
-        if: github.event.inputs.action == 'create'
+
+      # ----- CREATE -----
+      - name: Create bucket (plan)
+        if: ${{ github.event.inputs.action == 'create' }}
         run: |
-          # Create tfvars file with the bucket configuration
-          cat << EOF > terraform.tfvars
-          bucket_name = "${{ github.event.inputs.bucket_name }}"
+          cat > terraform.tfvars << EOF
+          bucket_name   = "${{ github.event.inputs.bucket_name }}"
           create_bucket = true
-          bucket_acl = "private"
+          bucket_acl    = "private"
           EOF
-          
-          # Show the plan
-          terraform plan
-          
-          # Apply the changes
-          terraform apply -auto-approve
-      
-      - name: Delete bucket
-        if: github.event.inputs.action == 'delete'
+
+          terraform fmt -recursive
+          terraform validate
+          terraform plan -input=false -out=create.plan
+
+      - name: Create bucket (apply)
+        if: ${{ github.event.inputs.action == 'create' }}
+        run: terraform apply -input=false -auto-approve create.plan
+
+      # ----- DELETE -----
+      # With count = var.create_bucket ? 1 : 0, setting create_bucket=false
+      # makes Terraform plan a destroy for the existing bucket in this workspace.
+      - name: Delete bucket (plan)
+        if: ${{ github.event.inputs.action == 'delete' }}
         run: |
-          # Create a temporary tfvars file
-          cat << EOF > terraform.tfvars
-          bucket_name = "${{ github.event.inputs.bucket_name }}"
+          cat > terraform.tfvars << EOF
+          bucket_name   = "${{ github.event.inputs.bucket_name }}"
+          create_bucket = false
+          # acl not needed for delete
           EOF
-          
-          # Show bucket to be deleted
-          echo "Deleting bucket: ${{ github.event.inputs.bucket_name }} (with workspace prefix)"
-          echo "In workspace: $(terraform workspace show)"
-          
-          # Destroy the specific bucket
-          terraform destroy -target="module.s3_bucket[0]" -auto-approve
+
+          terraform fmt -recursive
+          terraform validate
+          terraform plan -input=false -out=destroy.plan
+
+      - name: Delete bucket (apply)
+        if: ${{ github.event.inputs.action == 'delete' }}
+        run: terraform apply -input=false -auto-approve destroy.plan
