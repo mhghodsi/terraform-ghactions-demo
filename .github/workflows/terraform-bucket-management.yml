@@ -24,6 +24,11 @@ jobs:
   terraform:
     runs-on: ubuntu-latest
 
+    # Make TF input vars available to Terraform
+    env:
+      TF_VAR_github_token: ${{ secrets.TF_VAR_GITHUB_TOKEN }}
+      TF_VAR_github_owner: ${{ github.repository_owner }}
+
     steps:
       # Enforce main branch only
       - name: Check branch
@@ -53,15 +58,15 @@ jobs:
 
       - name: Select/Create Workspace
         run: |
-          ENV_LOWER=$(echo "${{ github.event.inputs.environment }}" | tr '[:upper:]' '[:lower:]')
-          terraform workspace select "$ENV_LOWER" || terraform workspace new "$ENV_LOWER"
+          ENV_LOWER="$(echo "${{ github.event.inputs.environment }}" | tr '[:upper:]' '[:lower:]')"
+          terraform workspace select -or-create "$ENV_LOWER"
           echo "Using workspace: $(terraform workspace show)"
 
       # ----- CREATE -----
       - name: Create bucket (plan)
         if: ${{ github.event.inputs.action == 'create' }}
         run: |
-          cat > terraform.tfvars << EOF
+          cat > terraform.tfvars << 'EOF'
           bucket_name   = "${{ github.event.inputs.bucket_name }}"
           create_bucket = true
           bucket_acl    = "private"
@@ -81,7 +86,7 @@ jobs:
       - name: Delete bucket (plan)
         if: ${{ github.event.inputs.action == 'delete' }}
         run: |
-          cat > terraform.tfvars << EOF
+          cat > terraform.tfvars << 'EOF'
           bucket_name   = "${{ github.event.inputs.bucket_name }}"
           create_bucket = false
           # acl not needed for delete
