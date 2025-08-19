@@ -1,0 +1,85 @@
+name: Terraform Bucket Management
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - prod
+      action:
+        description: 'Action to perform'
+        required: true
+        default: 'create-buckets'
+        type: choice
+        options:
+          - create-buckets
+          - delete-buckets
+      bucket_config:
+        description: 'JSON configuration for buckets (e.g., {"bucket1": {"create": true}, "bucket2": {"create": true}})'
+        required: true
+        type: string
+      delete_bucket:
+        description: 'Specific bucket name to delete (without env prefix, only needed for delete action)'
+        required: false
+        type: string
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.4.0
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      
+      - name: Initialize Terraform
+        run: terraform init
+      
+      - name: Select Workspace
+        run: |
+          terraform workspace select ${{ github.event.inputs.environment }} || terraform workspace new ${{ github.event.inputs.environment }}
+          echo "Using workspace: $(terraform workspace show)"
+      
+      - name: Create buckets
+        if: github.event.inputs.action == 'create-buckets'
+        run: |
+          # Create tfvars file from JSON input
+          echo "buckets = ${{ github.event.inputs.bucket_config }}" > terraform.tfvars
+          
+          # Show the plan
+          terraform plan
+          
+          # Apply the changes
+          terraform apply -auto-approve
+      
+      - name: Delete specific bucket
+        if: github.event.inputs.action == 'delete-buckets' && github.event.inputs.delete_bucket != ''
+        run: |
+          # Create temporary tfvars with the current bucket configuration
+          echo "buckets = ${{ github.event.inputs.bucket_config }}" > terraform.tfvars
+          
+          # Get the current workspace for prefix formation
+          WORKSPACE=$(terraform workspace show)
+          
+          # Format the bucket name with workspace prefix
+          PREFIX="${WORKSPACE}_"
+          BUCKET_WITH_PREFIX="${PREFIX}${{ github.event.inputs.delete_bucket }}"
+          
+          # Target destroy the specific bucket
+          terraform destroy -target="module.buckets[\"${{ github.event.inputs.delete_bucket }}\"]" -auto-approve

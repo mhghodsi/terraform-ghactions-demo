@@ -5,18 +5,14 @@ resource "random_string" "suffix" {
   special = false
 }
 
-# Create the demo bucket with random suffix
-# module "demo_bucket" {
-#   source = "./modules/s3"
+# Create S3 buckets based on the input configuration
+module "buckets" {
+  source     = "./modules/s3"
+  for_each   = {for name, config in var.buckets : name => config if config.create}
   
-#   bucket_name = "gh-actions-demo-bucket-${random_string.suffix.result}"
-# }
-
-# Create the user-defined bucket
-module "custom_bucket" {
-  source = "./modules/s3"
-  # bucket_name = var.bucket_name
-  bucket_name = local.bucket_name
+  # Apply workspace prefix to each bucket name
+  bucket_name = local.format_bucket_name(each.key)
+  acl         = each.value.acl
 }
 
 # Create a GitHub repository

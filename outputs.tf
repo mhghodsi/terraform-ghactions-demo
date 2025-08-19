@@ -1,6 +1,6 @@
-output "custom_bucket_name" {
-  description = "The name of the custom bucket"
-  value       = module.custom_bucket.bucket_name
+output "bucket_names" {
+  description = "Names of all created S3 buckets"
+  value       = {for name, bucket in module.buckets : name => bucket.bucket_name}
 }
 
 output "github_repo_url" {
