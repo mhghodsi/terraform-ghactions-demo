@@ -6,24 +6,25 @@ resource "random_string" "suffix" {
 }
 
 # Create the demo bucket with random suffix
-module "demo_bucket" {
-  source = "./modules/s3"
+# module "demo_bucket" {
+#   source = "./modules/s3"
   
-  bucket_name = "gh-actions-demo-bucket-${random_string.suffix.result}"
-}
+#   bucket_name = "gh-actions-demo-bucket-${random_string.suffix.result}"
+# }
 
 # Create the user-defined bucket
 module "custom_bucket" {
   source = "./modules/s3"
-  
-  bucket_name = var.bucket_name
+  # bucket_name = var.bucket_name
+  bucket_name = local.bucket_name
 }
 
-# Conditionally create CloudFront distributions
-module "cloudfront" {
-  source = "./modules/cloudfront"
+# Create a GitHub repository
+module "github_repo" {
+  source = "./modules/github"
   
-  count = var.enable_cloudfront ? 1 : 0
-  
-  # Add any required parameters for CloudFront module
+  repo_name    = "terraform-created-repo"
+  description  = "This repository was created using Terraform"
+  visibility   = "private"
+  github_owner = var.github_owner
 }

@@ -1,14 +1,14 @@
-output "demo_bucket_name" {
-  description = "The name of the demo bucket"
-  value       = module.demo_bucket.bucket_name
-}
-
 output "custom_bucket_name" {
   description = "The name of the custom bucket"
   value       = module.custom_bucket.bucket_name
 }
 
-output "cloudfront_distribution_ids" {
-  description = "IDs of CloudFront distributions"
-  value       = var.enable_cloudfront ? module.cloudfront[0].distribution_ids : []
+output "github_repo_url" {
+  description = "URL of the created GitHub repository"
+  value       = module.github_repo.repo_url
+}
+
+output "github_repo_clone_url" {
+  description = "Git clone URL of the created GitHub repository"
+  value       = module.github_repo.repo_git_clone_url
 }
