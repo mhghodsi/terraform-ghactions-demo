@@ -19,21 +19,13 @@ on:
         description: 'Name of the bucket to create or delete (without env prefix)'
         required: true
         type: string
-      approvers:
-        description: 'GitHub usernames for approvers (comma-separated)'
-        required: false
-        default: 'mhghodsi'
-        type: string
-      approval_min:
-        description: 'Minimum number of approvals required'
-        required: false
-        default: '1'
-        type: number
 
 jobs:
   request-approval:
     name: Request Approval
     runs-on: ubuntu-latest
+    # Business logic for approvals is embedded here rather than in workflow inputs
+    # To change approvers or approval requirements, modify the "Manual Approval" step below
     steps:
       - name: Display action details
         run: |
@@ -45,8 +37,10 @@ jobs:
         uses: trstringer/manual-approval@v1
         with:
           secret: ${{ secrets.GITHUB_TOKEN }}
-          approvers: ${{ github.event.inputs.approvers }}
-          minimum-approvals: ${{ github.event.inputs.approval_min }}
+          # Approvers: Comma-separated list of GitHub usernames who can approve the request
+          approvers: mhghodsi
+          # Minimum approvals: Number of approvals required to proceed
+          minimum-approvals: 1
           issue-title: "Approval for ${{ github.event.inputs.action }} bucket in ${{ github.event.inputs.environment }}"
           issue-body: "Please approve or deny the following operation:\n\n- **Action:** ${{ github.event.inputs.action }}\n- **Environment:** ${{ github.event.inputs.environment }}\n- **Bucket name:** ${{ github.event.inputs.environment }}-${{ github.event.inputs.bucket_name }}\n\nInitiated by: ${{ github.actor }}"
           exclude-workflow-initiator-as-approver: false
