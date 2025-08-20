@@ -17,11 +17,11 @@ module "s3_bucket" {
 }
 
 # Create a GitHub repository
-module "github_repo" {
-  source = "./modules/github"
+# module "github_repo" {
+#   source = "./modules/github"
 
-  repo_name    = "terraform-created-repo"
-  description  = "This repository was created using Terraform"
-  visibility   = "private"
-  github_owner = var.github_owner
-}
+#   repo_name    = "terraform-created-repo"
+#   description  = "This repository was created using Terraform"
+#   visibility   = "private"
+#   github_owner = var.github_owner
+# }
