@@ -1,5 +1,11 @@
 name: Terraform Bucket Management
 
+# Default permissions for all jobs
+permissions:
+  issues: write   # Required for creating approval issues
+  contents: read  # Required to read repository contents
+  id-token: write # Required for AWS authentication
+  
 on:
   workflow_dispatch:
     inputs:
@@ -26,19 +32,29 @@ jobs:
     runs-on: ubuntu-latest
     # Business logic for approvals is embedded here rather than in workflow inputs
     # To change approvers or approval requirements, modify the "Manual Approval" step below
+    permissions:
+      issues: write      # Required to create issues for approval
+      contents: read     # Required to read repo content
     steps:
       - name: Display action details
         run: |
           ACTION=$(echo "${{ github.event.inputs.action }}" | tr '[:lower:]' '[:upper:]')
           echo "::notice title=Approval Required::${ACTION} bucket ${{ github.event.inputs.environment }}-${{ github.event.inputs.bucket_name }}"
           echo "Waiting for approval to ${{ github.event.inputs.action }} bucket in environment ${{ github.event.inputs.environment }}."
+          
+      - name: Verify token permissions
+        run: |
+          echo "Repository owner: ${{ github.repository_owner }}"
+          echo "Current actor: ${{ github.actor }}"
+          echo "Using token with issues:write permission to create approval request"
 
       - name: Manual Approval
         uses: trstringer/manual-approval@v1
         with:
           secret: ${{ secrets.GITHUB_TOKEN }}
           # Approvers: Comma-separated list of GitHub usernames who can approve the request
-          approvers: mhghodsi
+          # Using repo owner as the approver to ensure proper access
+          approvers: ${{ github.repository_owner }}
           # Minimum approvals: Number of approvals required to proceed
           minimum-approvals: 1
           issue-title: "Approval for ${{ github.event.inputs.action }} bucket in ${{ github.event.inputs.environment }}"
@@ -50,6 +66,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [request-approval]
     if: needs.request-approval.result == 'success'
+    permissions:
+      contents: read    # Required to checkout code
+      id-token: write   # Required for AWS authentication
 
     # Make TF input vars available to Terraform
     env:
