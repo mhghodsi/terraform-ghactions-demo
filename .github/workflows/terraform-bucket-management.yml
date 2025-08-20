@@ -62,6 +62,12 @@ jobs:
           terraform workspace select -or-create "$ENV_LOWER"
           echo "Using workspace: $(terraform workspace show)"
 
+      - name: Show backend type
+        run: |
+          awk 'BEGIN{inblock=0} /backend *"s3"/{inblock=1} inblock{print} /\}/{if(inblock){exit}}' backend.tf || true
+          # also confirm there's no local state lying around
+          test ! -f terraform.tfstate && echo "No local terraform.tfstate (good)"
+
       # ----- CREATE -----
       - name: Create bucket (plan)
         if: ${{ github.event.inputs.action == 'create' }}

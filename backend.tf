@@ -4,6 +4,6 @@ terraform {
     key                  = "snowflake/infra.tfstate"
     region               = "us-east-1"
     workspace_key_prefix = "env"
-    use_lockfile         = true   # replaces dynamodb_table
+    use_lockfile         = true   # no DynamoDB
   }
 }
