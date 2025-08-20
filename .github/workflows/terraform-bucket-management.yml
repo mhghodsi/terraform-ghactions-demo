@@ -19,11 +19,43 @@ on:
         description: 'Name of the bucket to create or delete (without env prefix)'
         required: true
         type: string
+      approvers:
+        description: 'GitHub usernames for approvers (comma-separated)'
+        required: false
+        default: 'mhghodsi'
+        type: string
+      approval_min:
+        description: 'Minimum number of approvals required'
+        required: false
+        default: '1'
+        type: number
 
 jobs:
+  request-approval:
+    name: Request Approval
+    runs-on: ubuntu-latest
+    steps:
+      - name: Display action details
+        run: |
+          ACTION=$(echo "${{ github.event.inputs.action }}" | tr '[:lower:]' '[:upper:]')
+          echo "::notice title=Approval Required::${ACTION} bucket ${{ github.event.inputs.environment }}-${{ github.event.inputs.bucket_name }}"
+          echo "Waiting for approval to ${{ github.event.inputs.action }} bucket in environment ${{ github.event.inputs.environment }}."
+
+      - name: Manual Approval
+        uses: trstringer/manual-approval@v1
+        with:
+          secret: ${{ secrets.GITHUB_TOKEN }}
+          approvers: ${{ github.event.inputs.approvers }}
+          minimum-approvals: ${{ github.event.inputs.approval_min }}
+          issue-title: "Approval for ${{ github.event.inputs.action }} bucket in ${{ github.event.inputs.environment }}"
+          issue-body: "Please approve or deny the following operation:\n\n- **Action:** ${{ github.event.inputs.action }}\n- **Environment:** ${{ github.event.inputs.environment }}\n- **Bucket name:** ${{ github.event.inputs.environment }}-${{ github.event.inputs.bucket_name }}\n\nInitiated by: ${{ github.actor }}"
+          exclude-workflow-initiator-as-approver: false
+  
   terraform:
     name: ${{ github.event.inputs.action }} ${{ github.event.inputs.environment }}-${{ github.event.inputs.bucket_name }}
     runs-on: ubuntu-latest
+    needs: [request-approval]
+    if: needs.request-approval.result == 'success'
 
     # Make TF input vars available to Terraform
     env:
