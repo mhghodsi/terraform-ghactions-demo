@@ -22,6 +22,7 @@ on:
 
 jobs:
   terraform:
+    name: ${{ github.event.inputs.action }} ${{ github.event.inputs.environment }}-${{ github.event.inputs.bucket_name }}
     runs-on: ubuntu-latest
 
     # Make TF input vars available to Terraform
@@ -37,7 +38,12 @@ jobs:
           echo "This workflow should only be run from the main branch"
           echo "Current ref: $GITHUB_REF"
           exit 1
-
+          
+      - name: Display action details
+        run: |
+          ACTION=$(echo "${{ github.event.inputs.action }}" | tr '[:lower:]' '[:upper:]')
+          echo "::notice title=Bucket Operation::${ACTION} bucket ${{ github.event.inputs.environment }}-${{ github.event.inputs.bucket_name }} (with random suffix to be added)"
+          
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -85,6 +91,12 @@ jobs:
       - name: Create bucket (apply)
         if: ${{ github.event.inputs.action == 'create' }}
         run: terraform apply -input=false -auto-approve create.plan
+        
+      - name: Output created bucket info
+        if: ${{ github.event.inputs.action == 'create' }}
+        run: |
+          echo "::notice title=Bucket Creation Summary::Created bucket with prefix ${{ github.event.inputs.environment }}-${{ github.event.inputs.bucket_name }} in workspace $(terraform workspace show)"
+          terraform output -json | jq
 
       # ----- DELETE -----
       # With count = var.create_bucket ? 1 : 0, setting create_bucket=false
@@ -105,3 +117,16 @@ jobs:
       - name: Delete bucket (apply)
         if: ${{ github.event.inputs.action == 'delete' }}
         run: terraform apply -input=false -auto-approve destroy.plan
+        
+      - name: Output deleted bucket info
+        if: ${{ github.event.inputs.action == 'delete' }}
+        run: |
+          echo "::notice title=Bucket Deletion Summary::Deleted bucket with prefix ${{ github.event.inputs.environment }}-${{ github.event.inputs.bucket_name }} in workspace $(terraform workspace show)"
+          
+      - name: Set workflow summary
+        run: |
+          ACTION=$(echo "${{ github.event.inputs.action }}" | tr '[:lower:]' '[:upper:]')
+          echo "## Bucket Operation: ${ACTION}" >> $GITHUB_STEP_SUMMARY
+          echo "* **Environment:** ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "* **Bucket name:** ${{ github.event.inputs.environment }}-${{ github.event.inputs.bucket_name }} (plus random suffix)" >> $GITHUB_STEP_SUMMARY
+          echo "* **Workspace:** $(terraform workspace show)" >> $GITHUB_STEP_SUMMARY
